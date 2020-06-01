@@ -1,75 +1,77 @@
-type 'a dList = Nil | Cons of 'a cell
-and 'a cell = {mutable le: 'a dList; da: 'a; mutable ri: 'a dList }
-;;
+(* type 'a dList = Nil | Cons of 'a cell
+ * and 'a cell = {mutable le: 'a dList; da: 'a; mutable ri: 'a dList }
+ * ;;
+ * 
+ * let ( !. ) = function
+ *   | Nil -> failwith "Nil"
+ *   | Cons(x) -> x
+ * 
+ *              
+ * let cdlist_from_list l =
+ *   let rec aux li = match li with
+ *     | [] -> Nil
+ *     | x::r -> Cons({le = Nil; da = x; ri = aux r})
+ *   in
+ *   let dl = aux l in
+ *   let tmp = ref Nil in
+ *   let rec aux2 dli p = match dli with
+ *     | Nil -> (tmp := p;)
+ *     | x -> (
+ *       (!.x).le <- p;
+ *       aux2 (!.x).ri x;
+ *     )
+ *   in
+ *   aux2 dl Nil;
+ *   try
+ *     (!.dl).le <- !tmp;
+ *     (!.(!tmp)).ri <- dl;
+ *     dl
+ *   with _ -> Nil
+ * ;;
+ * 
+ * let cdlist_length l = match l with
+ *   | Nil -> 0
+ *   | _ -> 
+ *      let rec aux i r =
+ *        if r == l then i else
+ *          aux (i+1) (!.r).ri
+ *      in aux 1 (!.l).ri
+ * ;;
+ * 
+ * let cdlist_iter f l = if l = Nil then () else
+ *   let rec aux r =
+ *     f r;
+ *     if not (r == (!.l).le) then
+ *       aux (!.r).ri
+ *   in aux l
+ * ;;
+ * 
+ * let cdlist_add x l = match l with
+ *   | Nil -> cdlist_from_list [x]
+ *   | h -> (
+ *     let ret = Cons({le = (!.h).le;
+ *                     da = x;
+ *                     ri = h;
+ *                 }) in
+ *     (!.((!.h).le)).ri <- ret;
+ *     (!.h).le <- ret;
+ *     ret
+ *   )
+ * ;;
+ * 
+ * let cdlist_pop l = match l with
+ *   | Nil -> failwith "list vide"
+ *   | Cons(x) -> (
+ *     let new_l = x.ri in
+ *     (!.new_l).le <- x.le;
+ *     (!.(x.le)).ri <- new_l;
+ *     (x.da, new_l)
+ *   )
+ * ;;     *)
 
-let ( !. ) = function
-  | Nil -> failwith "Nil"
-  | Cons(x) -> x
+let (!.) = Cdlist.(!.)
 
-             
-let cdlist_from_list l =
-  let rec aux li = match li with
-    | [] -> Nil
-    | x::r -> Cons({le = Nil; da = x; ri = aux r})
-  in
-  let dl = aux l in
-  let tmp = ref Nil in
-  let rec aux2 dli p = match dli with
-    | Nil -> (tmp := p;)
-    | x -> (
-      (!.x).le <- p;
-      aux2 (!.x).ri x;
-    )
-  in
-  aux2 dl Nil;
-  try
-    (!.dl).le <- !tmp;
-    (!.(!tmp)).ri <- dl;
-    dl
-  with _ -> Nil
-;;
-
-let cdlist_length l = match l with
-  | Nil -> 0
-  | _ -> 
-     let rec aux i r =
-       if r == l then i else
-         aux (i+1) (!.r).ri
-     in aux 1 (!.l).ri
-;;
-
-let cdlist_iter f l = if l = Nil then () else
-  let rec aux r =
-    f r;
-    if not (r == (!.l).le) then
-      aux (!.r).ri
-  in aux l
-;;
-
-let cdlist_add x l = match l with
-  | Nil -> cdlist_from_list [x]
-  | h -> (
-    let ret = Cons({le = (!.h).le;
-                    da = x;
-                    ri = h;
-                }) in
-    (!.((!.h).le)).ri <- ret;
-    (!.h).le <- ret;
-    ret
-  )
-;;
-
-let cdlist_pop l = match l with
-  | Nil -> failwith "list vide"
-  | Cons(x) -> (
-    let new_l = x.ri in
-    (!.new_l).le <- x.le;
-    (!.(x.le)).ri <- new_l;
-    (x.da, new_l)
-  )
-;;    
-
-type 'a fibTree = Node of 'a * ('a fibTree) dList ref
+type 'a fibTree = Node of 'a * ('a fibTree) Cdlist.cdlist ref
 ;;
   
 let ( </ ) = function
@@ -78,8 +80,8 @@ let ( </ ) = function
 ;;
 
 type fibHeap = {
-    mutable min : (int * float) fibTree dList;
-    degs : (int * float) fibTree dList list array;
+    mutable min : (int * float) fibTree Cdlist.cdlist;
+    degs : (int * float) fibTree Cdlist.cdlist list array;
   }
 ;;
 
@@ -90,7 +92,7 @@ let make () = {
 ;;
 
 let add e k f =
-  let root = cdlist_from_list [Node((e, k), ref Nil)] in
+  let root = Cdlist.from_list [Node((e, k), ref Cdlist.Nil)] in
   match f.min with
   | Nil -> (
     f.min <- root;
@@ -147,8 +149,8 @@ let extract_min f =
              (e, k)
            )
   in (* pour l'instant, f.min ne pointe vers rien (de correct) !!!! *)
-  let pnt = ref Nil in (* pointer that will point to the remaining
-                        * roots at the end of the loop *)
+  let pnt = ref Cdlist.Nil in (* pointer that will point to the remaining
+                               * roots at the end of the loop *)
   while Array.exists (fun l ->
             List.length l > 1
           ) f.degs
@@ -157,17 +159,17 @@ let extract_min f =
         match l with
         | x::y::r -> (
           if (!.x).da </ (!.y).da then
-            (let child, roots = cdlist_pop y in
+            (let child, roots = Cdlist.pop y in
              let Node (_, children) = (!.x).da in
              pnt := roots;
-             children :=  cdlist_add child !children;
+             children :=  Cdlist.add child !children;
              (f.degs).(i+1) <- x::(f.degs).(i+1);
              (f.degs).(i) <- r)
           else
-            (let child, roots = cdlist_pop x in
+            (let child, roots = Cdlist.pop x in
              let Node(_, children) = (!.y).da in
              pnt := roots;
-             children := cdlist_add child !children;
+             children := Cdlist.add child !children;
              (f.degs).(i+1) <- y::(f.degs).(i+1);
              (f.degs).(i) <- r)
         )
@@ -175,7 +177,7 @@ let extract_min f =
       ) f.degs
   done;
   f.min <- !pnt;
-  cdlist_iter (fun x ->
+  Cdlist.iter (fun x ->
       if (!.x).da </ (!.(f.min)).da
       then f.min <- x) !pnt;
   km
