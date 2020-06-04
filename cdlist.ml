@@ -67,6 +67,7 @@ let add x l = match l with
 let pop l = match l with
   | Nil -> failwith "list vide"
   | Cons(x) -> (
+    if length l = 1 then x.da, Nil else
     let new_l = x.ri in
     (!.new_l).le <- x.le;
     (!.(x.le)).ri <- new_l;

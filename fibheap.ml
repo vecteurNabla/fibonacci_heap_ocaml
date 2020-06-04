@@ -60,29 +60,37 @@ let merge f f' = match f.min, f'.min with
 let extract_min f =
   let km = match f.min with
     | Nil -> failwith "Empty"
-    | x -> let xri = (!.x).ri in
-           let xle = (!.x).le in
-           let Node ((e, k), c) = (!.x).da in
-           match !c with
-           | Nil -> (
-             (!.xri).le <- xle;
-             (!.xle).ri <- xri;
-             f.degs.(0) <- List.filter (fun d -> not (d == f.min)) f.degs.(0);
-             (e, k)
-           )
-           | l  -> (
-             let n = Cdlist.length l in
-             let lri = (!.l).ri in
-             (!.xle).ri <- lri;
-             (!.lri).le <- xle;
-             (!.l).ri <- xri;
-             (!.xri).le <- l;
-             f.degs.(n) <- List.filter (fun d -> not (d == f.min)) f.degs.(n);
-             (e, k)
-           )
-  in (* TODO: add f.min's children to the  lists of degrees *)
-  let pnt = ref Cdlist.Nil in (* pointer that will point to the remaining
-                               * roots at the end of the loop *)
+    | x -> (
+      let Node ((e, k), c) = (!.x).da in
+      let n = Cdlist.length !c in
+      f.degs.(n) <- List.filter (fun d -> not (d == x)) f.degs.(n);
+      Cdlist.iter (fun ch -> let Node(_, chi) = (!.ch).da in
+                             let d = Cdlist.length !chi in
+                             f.degs.(d) <- ch::f.degs.(d)
+        ) !c;
+      (if Cdlist.length x = 1 then
+         f.min <- !c
+       else (
+         let xri = (!.x).ri in
+         let xle = (!.x).le in
+         f.min <- xri;
+         match !c with
+         | Nil -> (
+           (!.xri).le <- xle;
+           (!.xle).ri <- xri;
+         )
+         | l  -> (
+           let lri = (!.l).ri in
+           (!.xle).ri <- lri;
+           (!.lri).le <- xle;
+           (!.l).ri <- xri;
+           (!.xri).le <- l;
+         )
+       )
+      );
+      (e, k)
+    )
+  in 
   while Array.exists (fun l ->
             List.length l > 1
           ) f.degs
@@ -93,14 +101,14 @@ let extract_min f =
           if (!.x).da </ (!.y).da then
             (let child, roots = Cdlist.pop y in
              let Node (_, children) = (!.x).da in
-             pnt := roots;
+             f.min <- roots;
              children :=  Cdlist.add child !children;
              (f.degs).(i+1) <- x::(f.degs).(i+1);
              (f.degs).(i) <- r)
           else
             (let child, roots = Cdlist.pop x in
              let Node(_, children) = (!.y).da in
-             pnt := roots;
+             f.min <- roots;
              children := Cdlist.add child !children;
              (f.degs).(i+1) <- y::(f.degs).(i+1);
              (f.degs).(i) <- r)
@@ -108,10 +116,9 @@ let extract_min f =
         | _ -> ()
       ) f.degs
   done;
-  f.min <- !pnt;
   Cdlist.iter (fun x ->
       if (!.x).da </ (!.(f.min)).da
-      then f.min <- x) !pnt;
+      then f.min <- x) f.min;
   km
 ;;
 
