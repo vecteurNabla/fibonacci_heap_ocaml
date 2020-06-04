@@ -16,7 +16,7 @@ type fibHeap = {
 
 let make () = {
     min = Nil;
-    degs = Array.make 1973 [] (* placeholder *)
+    degs = Array.make 612 []
   }
 ;;
 
