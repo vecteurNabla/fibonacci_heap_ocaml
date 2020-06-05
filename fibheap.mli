@@ -12,5 +12,5 @@ val merge : fibHeap -> fibHeap -> fibHeap
   
 val extract_min : fibHeap -> int * float
 (** [extract_min f] returns the element with the lowest priority,
- ** along with its priority, and deletes it from f. *)
+   along with its priority, and deletes it from f. *)
                                      

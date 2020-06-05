@@ -19,10 +19,11 @@ roots of this degree, and merge trees until all lists are empty or
 contain a single element.
 
 Because of this, some time complexities are not respected: the merge
-operation should be *O*(1), but cannot be here, though I don't know
-how it could be in constant time since all the roots from the first
-queue could have different degrees from the ones from the second
-queue.
+operation should be *O*(1), but cannot be here, though I am not sure
+how it can be in the original implementation, since the arrays of
+pointers to roots of each degree need to be merged, which cannot be
+done in constant time, I think.
+
 
 Also I am not sure the extraction of the minimum respects the *O*(log
 *n*) time complexity.
