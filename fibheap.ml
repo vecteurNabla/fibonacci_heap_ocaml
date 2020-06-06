@@ -10,13 +10,11 @@ let ( </ ) = function
 
 type fibHeap = {
     mutable min : (int * float) fibTree Cdlist.cdlist;
-    degs : (int * float) fibTree Cdlist.cdlist list array;
   }
 ;;
 
 let make () = {
     min = Nil;
-    degs = Array.make 612 []
   }
 ;;
 
@@ -25,7 +23,6 @@ let add e k f =
   match f.min with
   | Nil -> (
     f.min <- root;
-    f.degs.(0) <- root::f.degs.(0)
   )
   | x -> (
     let rimin = (!.x).ri in
@@ -34,7 +31,6 @@ let add e k f =
     (!.root).ri <- rimin;
     (!.rimin).le <- root;
     if (!.root).da </ (!.(f.min)).da then f.min <- root;
-    f.degs.(0) <- root::f.degs.(0)
   )
 ;;
 
@@ -51,7 +47,6 @@ let merge f f' = match f.min, f'.min with
     (!.yle).ri <- xri;
     {
       min = if (!.x).da </ (!.y).da then x else y;
-      degs = Array.map2 (fun a b -> a@b) f.degs f'.degs 
     }
   )     
 ;;
@@ -63,11 +58,6 @@ let extract_min f =
     | x -> (
       let Node ((e, k), c) = (!.x).da in
       let n = Cdlist.length !c in
-      f.degs.(n) <- List.filter (fun d -> not (d == x)) f.degs.(n);
-      Cdlist.iter (fun ch -> let Node(_, chi) = (!.ch).da in
-                             let d = Cdlist.length !chi in
-                             f.degs.(d) <- ch::f.degs.(d)
-        ) !c;
       (if Cdlist.length x = 1 then
          f.min <- !c
        else (
@@ -90,35 +80,40 @@ let extract_min f =
       );
       (e, k)
     )
-  in 
-  while Array.exists (fun l ->
-            List.length l > 1
-          ) f.degs
-  do
-    Array.iteri (fun i l ->
-        match l with
-        | x::y::r -> (
-          if (!.x).da </ (!.y).da then
-            (let child, roots = Cdlist.pop y in
-             let Node (_, children) = (!.x).da in
-             f.min <- roots;
-             children :=  Cdlist.add child !children;
-             (f.degs).(i+1) <- x::(f.degs).(i+1);
-             (f.degs).(i) <- r)
-          else
-            (let child, roots = Cdlist.pop x in
-             let Node(_, children) = (!.y).da in
-             f.min <- roots;
-             children := Cdlist.add child !children;
-             (f.degs).(i+1) <- y::(f.degs).(i+1);
-             (f.degs).(i) <- r)
-        )
-        | _ -> ()
-      ) f.degs
-  done;
+  in
+  let n = Cdlist.length f.min in
+  let degs = Array.make n Cdlist.Nil in
+  let rec merge_nodes x y i =
+    if (!.x).da </ (!.y).da then
+      (let child, roots = Cdlist.pop y in
+       let Node (_, children) = (!.x).da in
+       f.min <- roots;
+       children :=  Cdlist.add child !children;
+       if degs.(i+1) <> Cdlist.Nil then
+         merge_nodes x degs.(i+1) (i+1)
+       else degs.(i+1) <- x;
+      )
+    else
+      (let child, roots = Cdlist.pop x in
+       let Node(_, children) = (!.y).da in
+       f.min <- roots;
+       children := Cdlist.add child !children;
+       if degs.(i+1) <> Cdlist.Nil then
+         merge_nodes y degs.(i+1) (i+1)
+       else degs.(i+1) <- y;
+      )
+  in
+  Cdlist.iter (fun a ->
+      let Node((e, k), children) = (!.a).da in
+      let d = Cdlist.length !children in
+      if degs.(d) = Nil then
+        degs.(d) <- a
+      else
+        merge_nodes a degs.(d) d
+    ) f.min;
   Cdlist.iter (fun x ->
       if (!.x).da </ (!.(f.min)).da
-      then f.min <- x) f.min;
+      then f.min <- x) f.min; 
   km
 ;;
 
