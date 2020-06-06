@@ -1,6 +1,9 @@
 # Fibonacci Heaps for OCaml
 ## Includes circular doubly linked lists
 
+**This is very incorrect, I misunderstood something and am in the
+process of re-writing it**
+
 WIP
 
 An implementation of priority queues using Fibonacci heaps in OCaml,
