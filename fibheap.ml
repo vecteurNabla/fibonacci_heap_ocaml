@@ -57,7 +57,6 @@ let extract_min f =
     | Nil -> failwith "Empty"
     | x -> (
       let Node ((e, k), c) = (!.x).da in
-      let n = Cdlist.length !c in
       (if Cdlist.length x = 1 then
          f.min <- !c
        else (
@@ -82,13 +81,14 @@ let extract_min f =
     )
   in
   let n = Cdlist.length f.min in
-  let degs = Array.make n Cdlist.Nil in
+  let degs = Array.make (1 lsl n) Cdlist.Nil in
   let rec merge_nodes x y i =
     if (!.x).da </ (!.y).da then
       (let child, roots = Cdlist.pop y in
        let Node (_, children) = (!.x).da in
-       f.min <- roots;
+       f.min <- x;
        children :=  Cdlist.add child !children;
+       degs.(i) <- Cdlist.Nil;
        if degs.(i+1) <> Cdlist.Nil then
          merge_nodes x degs.(i+1) (i+1)
        else degs.(i+1) <- x;
@@ -96,21 +96,26 @@ let extract_min f =
     else
       (let child, roots = Cdlist.pop x in
        let Node(_, children) = (!.y).da in
-       f.min <- roots;
+       f.min <- y;
        children := Cdlist.add child !children;
+       degs.(i) <- Cdlist.Nil;
        if degs.(i+1) <> Cdlist.Nil then
          merge_nodes y degs.(i+1) (i+1)
        else degs.(i+1) <- y;
       )
   in
-  Cdlist.iter (fun a ->
+  let rec link a =
       let Node((e, k), children) = (!.a).da in
       let d = Cdlist.length !children in
-      if degs.(d) = Nil then
-        degs.(d) <- a
-      else
-        merge_nodes a degs.(d) d
-    ) f.min;
+      (if degs.(d) = Nil then
+         degs.(d) <- a
+       else
+         merge_nodes a degs.(d) d
+      );
+      if not (a == f.min) then
+        link (!.a).ri
+  in
+  link !.(f.min).ri;
   Cdlist.iter (fun x ->
       if (!.x).da </ (!.(f.min)).da
       then f.min <- x) f.min; 
