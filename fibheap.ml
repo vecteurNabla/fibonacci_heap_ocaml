@@ -81,7 +81,7 @@ let extract_min f =
     )
   in
   let n = Cdlist.length f.min in
-  let degs = Array.make (1 lsl n) Cdlist.Nil in
+  let degs = Array.make (2 lsl n) Cdlist.Nil in
   let rec merge_nodes x y i =
     if (!.x).da </ (!.y).da then
       (let child, roots = Cdlist.pop y in
@@ -107,18 +107,21 @@ let extract_min f =
   let rec link a =
       let Node((e, k), children) = (!.a).da in
       let d = Cdlist.length !children in
-      (if degs.(d) = Nil then
+      (if degs.(d) = Cdlist.Nil then
          degs.(d) <- a
        else
          merge_nodes a degs.(d) d
       );
-      if not (a == f.min) then
+      if not (!.a.ri == f.min) then
         link (!.a).ri
   in
-  link !.(f.min).ri;
-  Cdlist.iter (fun x ->
-      if (!.x).da </ (!.(f.min)).da
-      then f.min <- x) f.min; 
+  if f.min <> Cdlist.Nil then
+    (
+      link (f.min);
+      Cdlist.iter (fun x ->
+          if (!.x).da </ (!.(f.min)).da
+          then f.min <- x) f.min
+    );
   km
 ;;
 
