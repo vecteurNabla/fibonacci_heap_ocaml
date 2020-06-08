@@ -1,25 +1,41 @@
 let (!.) = Cdlist.(!.)
 
-type 'a fibTree = Node of 'a * ('a fibTree) Cdlist.cdlist ref
+type 'a fibTree = {
+    key : 'a;
+    mutable priority : float;
+    mutable children : ('a fibTree) Cdlist.cdlist;
+    mutable parent : ('a fibTree) Cdlist.cdlist
+  }
 ;;
   
-let ( </ ) = function
-      | Node((_, a), _) -> function
-                         | Node((_, b), _) -> a < b
+let ( </ ) n1 n2 =
+  n1.priority < n2.priority
 ;;
 
-type fibHeap = {
-    mutable min : (int * float) fibTree Cdlist.cdlist;
+let n_node k p = {
+    key = k;
+    priority = p;
+    children = Cdlist.Nil;
+    parent = Cdlist.Nil;
+  }
+
+type 'a fibHeap = {
+    mutable min : 'a fibTree Cdlist.cdlist;
   }
 ;;
 
 let make () = {
-    min = Nil;
+    min = Cdlist.Nil;
   }
 ;;
 
-let add e k f =
-  let root = Cdlist.from_list [Node((e, k), ref Cdlist.Nil)] in
+let min f =
+  !.(f.min).da.key, !.(f.min).da.priority
+;;
+
+  
+let add k p f =
+  let root = Cdlist.from_list [n_node k p] in
   match f.min with
   | Nil -> (
     f.min <- root;
@@ -56,14 +72,16 @@ let extract_min f =
   let km = match f.min with
     | Nil -> failwith "Empty"
     | x -> (
-      let Node ((e, k), c) = (!.x).da in
-      (if Cdlist.length x = 1 then
-         f.min <- !c
+      let e, k, c = (!.x).da.key, (!.x).da.priority,
+                    (!.x).da.children in
+      (Cdlist.iter (fun a -> !.a.da.parent <- Cdlist.Nil) c;
+      if Cdlist.length x = 1 then
+         f.min <- c
        else (
          let xri = (!.x).ri in
          let xle = (!.x).le in
          f.min <- xri;
-         match !c with
+         match c with
          | Nil -> (
            (!.xri).le <- xle;
            (!.xle).ri <- xri;
@@ -85,9 +103,10 @@ let extract_min f =
   let rec merge_nodes x y i =
     if (!.x).da </ (!.y).da then
       (let child, roots = Cdlist.pop y in
-       let Node (_, children) = (!.x).da in
+       let children = !.x.da.children in
        f.min <- x;
-       children :=  Cdlist.add child !children;
+       !.x.da.children <- Cdlist.add child children;
+       !.y.da.parent <- x;
        degs.(i) <- Cdlist.Nil;
        if degs.(i+1) <> Cdlist.Nil then
          merge_nodes x degs.(i+1) (i+1)
@@ -95,9 +114,10 @@ let extract_min f =
       )
     else
       (let child, roots = Cdlist.pop x in
-       let Node(_, children) = (!.y).da in
+       let children = !.y.da.children in 
        f.min <- y;
-       children := Cdlist.add child !children;
+       !.y.da.children <- Cdlist.add child children;
+       !.x.da.parent <- y;
        degs.(i) <- Cdlist.Nil;
        if degs.(i+1) <> Cdlist.Nil then
          merge_nodes y degs.(i+1) (i+1)
@@ -105,8 +125,9 @@ let extract_min f =
       )
   in
   let rec link a =
-      let Node((e, k), children) = (!.a).da in
-      let d = Cdlist.length !children in
+      let e, k, c = (!.a).da.key, (!.a).da.priority,
+      (!.a).da.children in
+      let d = Cdlist.length c in
       (if degs.(d) = Cdlist.Nil then
          degs.(d) <- a
        else
