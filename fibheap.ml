@@ -30,7 +30,7 @@ let make () = {
 ;;
 
 let min f =
-  !.(f.min).da.key, !.(f.min).da.priority
+  f.min
 ;;
 
   
@@ -160,4 +160,13 @@ let extract_min f =
 let delete n f =
   decrease_priority n (-.infinity) f;
   ignore (extract_min f)
+;;
+
+let iter f h =
+  let rec aux l =
+    Cdlist.iter (fun a ->
+        f a;
+        aux !.a.da.children
+      ) l
+  in aux h.min
 ;;
