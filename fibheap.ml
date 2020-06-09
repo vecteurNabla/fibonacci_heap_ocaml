@@ -67,6 +67,16 @@ let merge f f' = match f.min, f'.min with
   )     
 ;;
 
+let decrease_priority n p f = match !.n.da.parent with
+  | Cdlist.Nil -> (
+   !.n.da.priority <- p;
+  )
+  | _ -> (
+    !.n.da.parent <- snd (Cdlist.pop n);
+    add !.n.da.key p f
+  )
+;;
+
 
 let extract_min f =
   let km = match f.min with
@@ -146,3 +156,8 @@ let extract_min f =
   km
 ;;
 
+
+let delete n f =
+  decrease_priority n (-.infinity) f;
+  ignore (extract_min f)
+;;
